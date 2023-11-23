@@ -26,7 +26,6 @@ class DATA:
         cls.substitutions = cls.data['payload']['rows']
         cls.classes = cls.data['payload']['affectedElements']['1']
         cls.clean_data = cls.cleanup_data(cls.substitutions, cls.classes)
-        pprint.pprint(cls.data)
 
 
     @staticmethod
@@ -133,10 +132,9 @@ class DATA:
             Daten_kurz[klassen] = []
             
         for eintrag in Daten:
-            eintrag["data"].insert(0, eintrag["group"])
             for i in range(len(eintrag["data"])):
                 eintrag["data"][i] = eintrag["data"][i].replace('<span class="substMonitorSubstElem">', "").replace('</span>', "").replace('<span class="cancelStyle">', '').replace('Raum&auml;nderung', 'Raumänderung')
-            Daten_kurz[eintrag["data"][0]].append(eintrag['data'])
+            Daten_kurz[eintrag['group']].append(eintrag['data'])
             
         return Daten_kurz
 
@@ -178,13 +176,9 @@ class GUI:
         self.selected_date = StringVar()
         
         self.master = master
+        
         self.selected_class = StringVar(master)
-        try:
-            
-            self.selected_class.set(DATA.classes[0])
-        except IndexError:
-            DATA.initialize(str(int(DATA.data['payload']['date']) + 1))
-            self.update_table_view()
+        self.selected_class.set(DATA.classes[0])
 
         self.empty_label = Label(root, bg= 'white', height=1)
         self.empty_label.grid(row=1)
@@ -241,7 +235,6 @@ class GUI:
 
     def update_table_view(self, *args):
         # Update the table view
-        
         self.update_class_menu()
         self.table_view.delete(*self.table_view.get_children())
         selected_klasse = self.selected_class.get()
@@ -251,7 +244,6 @@ class GUI:
         self.table_view.tag_configure('evenrow', background='#B3D9FF')  # Blue
 
         for index, row in enumerate(DATA.clean_data[selected_klasse]):
-            row.pop(0)
             if index % 2 == 0:
                 self.table_view.insert("", "end", values=row, tags=('evenrow',))
             else:
@@ -261,6 +253,13 @@ class GUI:
         # Update GUI data based on selected date and class
         selected_date = self.selected_date.get()
         DATA.initialize(selected_date)
+
+        # Check if clean_data is empty, and if so, select data from the next possible date
+        if not DATA.clean_data:
+            next_possible_date = DATA.mögliche_tage()[1]  # Select the date from the next day
+            DATA.initialize(next_possible_date)
+            self.selected_date.set(next_possible_date)  # Update selected date in the GUI
+
         self.update_table_view()
 
         
