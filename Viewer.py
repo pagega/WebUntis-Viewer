@@ -9,18 +9,18 @@ class DATA:
     def initialize(cls, date=None):
         try:
             if date is None:
-                selected_date_str = GUI.datum.get()
+                selected_date_str = GUI.selected_date.get()
                 parsed_date = datetime.strptime(selected_date_str, "%A, %d.%m.%Y")
                 date = parsed_date.strftime("%Y%m%d")
                 
         except Exception:
             date = datetime.now().strftime("%Y%m%d")
 
-        cls.daten = cls.daten_von_webuntis(date)
+        cls.data = cls.daten_von_webuntis(date)
         
-        cls.vertretungen = cls.daten['payload']['rows']
-        cls.keys = cls.daten['payload']['affectedElements']['1']
-        cls.sort_data = cls.daten_bereinigen(cls.vertretungen, cls.keys)
+        cls.substitutions = cls.data['payload']['rows']
+        cls.classes = cls.data['payload']['affectedElements']['1']
+        cls.clean_data = cls.daten_bereinigen(cls.substitutions, cls.classes)
 
 
     @staticmethod
@@ -166,33 +166,33 @@ class GUI:
         self.selected_date = StringVar()
         
         self.master = master
-        self.klasse = StringVar(master)
-        self.klasse.set(DATA.keys[0])
+        self.selected_class = StringVar(master)
+        self.selected_class.set(DATA.classes[0])
 
-        self.plain_label = Label(root, bg= 'white', height=1)
-        self.plain_label.grid(row=1)
+        self.empty_label = Label(root, bg= 'white', height=1)
+        self.empty_label.grid(row=1)
         
-        self.datum = StringVar(master)
-        self.datum.set(DATA.mögliche_tage()[0])
+        self.selected_date = StringVar(master)
+        self.selected_date.set(DATA.mögliche_tage()[0])
 
-        self.klasse.trace_add('write', self.update_data)
-        self.datum.trace_add('write', self.update_data)
+        self.selected_class.trace_add('write', self.update_gui_data)
+        self.selected_date.trace_add('write', self.update_gui_data)
 
-        self.klasse_menu = OptionMenu(master, self.klasse, *DATA.keys)
-        self.datum_menu = OptionMenu(master, self.datum, *DATA.mögliche_tage())
+        self.class_menu = OptionMenu(master, self.selected_class, *DATA.classes)
+        self.date_menu = OptionMenu(master, self.selected_date, *DATA.mögliche_tage())
         
-        self.klasse_menu.configure(relief= 'raised', bg= 'white', highlightthickness= 0.5, highlightbackground= 'black')
-        self.datum_menu.configure(relief= 'raised', bg= 'white', highlightthickness= 0.5, highlightbackground= 'black')
+        self.class_menu.configure(relief= 'raised', bg= 'white', highlightthickness= 0.5, highlightbackground= 'black')
+        self.date_menu.configure(relief= 'raised', bg= 'white', highlightthickness= 0.5, highlightbackground= 'black')
 
-        self.klasse_menu.grid(row=2, column=0)
-        self.datum_menu.grid(row=2, column=1)
+        self.class_menu.grid(row=2, column=0)
+        self.date_menu.grid(row=2, column=1)
         
-        self.plain_label.grid(row=3)
+        self.empty_label.grid(row=3)
 
         # Tabelle erstellen
-        self.table = ttk.Treeview(master, columns=(1, 2, 3, 4, 5), show="headings")
+        self.table_view = ttk.Treeview(master, columns=(1, 2, 3, 4, 5), show="headings")
 
-        self.table_headings = [
+        self.column_headings = [
                 'Stunde',
                 'Raum',
                 'Lehrer',
@@ -202,46 +202,46 @@ class GUI:
         
         # Überschriften hinzufügen
         for i in range(1, 6):
-            self.table.heading(i, text=self.table_headings[i - 1])
+            self.table_view.heading(i, text=self.column_headings[i - 1])
 
         # Tabelle anzeigen
-        self.table.grid(row=4, column=0, columnspan=2)
+        self.table_view.grid(row=4, column=0, columnspan=2)
 
         # Initial update of the table
-        self.update_table()
+        self.update_table_view()
         
-    def update_klasse_menu(self):
-        new_keys = DATA.keys
-        menu = self.klasse_menu['menu']
+    def update_class_menu(self):
+        new_keys = DATA.classes
+        menu = self.class_menu['menu']
         menu.delete(0, 'end')  # Remove old options
 
         for key in new_keys:
-            menu.add_command(label=key, command=lambda value=key: self.klasse.set(value))
+            menu.add_command(label=key, command=lambda value=key: self.selected_class.set(value))
         if new_keys:
-            self.klasse.set(new_keys[0])
+            self.selected_class.set(new_keys[0])
 
 
-    def update_table(self, *args):
+    def update_table_view(self, *args):
         
-        self.update_klasse_menu()
-        self.table.delete(*self.table.get_children())
-        selected_klasse = self.klasse.get()
+        self.update_class_menu()
+        self.table_view.delete(*self.table_view.get_children())
+        selected_klasse = self.selected_class.get()
 
         # Define tags for alternating row colors
-        self.table.tag_configure('oddrow', background='#E6F7FF')  # Light Blue
-        self.table.tag_configure('evenrow', background='#B3D9FF')  # Blue
+        self.table_view.tag_configure('oddrow', background='#E6F7FF')  # Light Blue
+        self.table_view.tag_configure('evenrow', background='#B3D9FF')  # Blue
 
-        for index, row in enumerate(DATA.sort_data[selected_klasse]):
+        for index, row in enumerate(DATA.clean_data[selected_klasse]):
             row.pop(0)
             if index % 2 == 0:
-                self.table.insert("", "end", values=row, tags=('evenrow',))
+                self.table_view.insert("", "end", values=row, tags=('evenrow',))
             else:
-                self.table.insert("", "end", values=row, tags=('oddrow',))
+                self.table_view.insert("", "end", values=row, tags=('oddrow',))
 
-    def update_data(self, *args):
-        selected_date = self.datum.get()
+    def update_gui_data(self, *args):
+        selected_date = self.selected_date.get()
         DATA.initialize(selected_date)
-        self.update_table()
+        self.update_table_view()
 
         
 # Initialize the data after the GUI is set up
