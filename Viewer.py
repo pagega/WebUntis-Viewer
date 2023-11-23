@@ -169,6 +169,9 @@ class GUI:
         self.klasse = StringVar(master)
         self.klasse.set(DATA.keys[0])
 
+        self.plain_label = Label(root, bg= 'white', height=1)
+        self.plain_label.grid(row=1)
+        
         self.datum = StringVar(master)
         self.datum.set(DATA.mögliche_tage()[0])
 
@@ -177,9 +180,14 @@ class GUI:
 
         self.klasse_menu = OptionMenu(master, self.klasse, *DATA.keys)
         self.datum_menu = OptionMenu(master, self.datum, *DATA.mögliche_tage())
+        
+        self.klasse_menu.configure(relief= 'raised', bg= 'white', highlightthickness= 0.5, highlightbackground= 'black')
+        self.datum_menu.configure(relief= 'raised', bg= 'white', highlightthickness= 0.5, highlightbackground= 'black')
 
-        self.klasse_menu.grid(row=1, column=0)
-        self.datum_menu.grid(row=1, column=1)
+        self.klasse_menu.grid(row=2, column=0)
+        self.datum_menu.grid(row=2, column=1)
+        
+        self.plain_label.grid(row=3)
 
         # Tabelle erstellen
         self.table = ttk.Treeview(master, columns=(1, 2, 3, 4, 5), show="headings")
@@ -197,7 +205,7 @@ class GUI:
             self.table.heading(i, text=self.table_headings[i - 1])
 
         # Tabelle anzeigen
-        self.table.grid(row=2, column=0, columnspan=2)
+        self.table.grid(row=4, column=0, columnspan=2)
 
         # Initial update of the table
         self.update_table()
@@ -218,9 +226,17 @@ class GUI:
         self.update_klasse_menu()
         self.table.delete(*self.table.get_children())
         selected_klasse = self.klasse.get()
-        for row in DATA.sort_data[selected_klasse]:
+
+        # Define tags for alternating row colors
+        self.table.tag_configure('oddrow', background='#E6F7FF')  # Light Blue
+        self.table.tag_configure('evenrow', background='#B3D9FF')  # Blue
+
+        for index, row in enumerate(DATA.sort_data[selected_klasse]):
             row.pop(0)
-            self.table.insert("", "end", values=row)
+            if index % 2 == 0:
+                self.table.insert("", "end", values=row, tags=('evenrow',))
+            else:
+                self.table.insert("", "end", values=row, tags=('oddrow',))
 
     def update_data(self, *args):
         selected_date = self.datum.get()
@@ -233,6 +249,8 @@ DATA.initialize()
 
 # Create the main Tkinter window
 root = Tk()
+root.configure(bg='white')
+
 # Create an instance of the GUI class
 gui = GUI(root)
 # Start the Tkinter event loop
