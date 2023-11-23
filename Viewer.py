@@ -224,13 +224,21 @@ class GUI:
     def update_class_menu(self):
         # Update the class menu options
         new_keys = DATA.classes
+        current_value = self.selected_class.get()
+
         menu = self.class_menu['menu']
         menu.delete(0, 'end')  # Remove old options
 
         for key in new_keys:
             menu.add_command(label=key, command=lambda value=key: self.selected_class.set(value))
+
         if new_keys:
-            self.selected_class.set(new_keys[0])
+            # Check if the current value is in the new keys, and if not, set the default value
+            if current_value not in new_keys:
+                self.selected_class.set(new_keys[0])
+            else:
+                self.selected_class.set(current_value)
+
 
 
     def update_table_view(self, *args):
