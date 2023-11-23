@@ -3,6 +3,7 @@ from tabulate import tabulate
 from tkinter import *
 from datetime import datetime, timedelta
 from tkinter import ttk
+import pprint
 
 class DATA:
     @classmethod
@@ -19,16 +20,17 @@ class DATA:
             date = datetime.now().strftime("%Y%m%d")
 
         # Initialize data from WebUntis API
-        cls.data = cls.daten_von_webuntis(date)
+        cls.data = cls.get_data_from_WebUntis(date)
         
         # Extract relevant information from the API response
         cls.substitutions = cls.data['payload']['rows']
         cls.classes = cls.data['payload']['affectedElements']['1']
-        cls.clean_data = cls.daten_bereinigen(cls.substitutions, cls.classes)
+        cls.clean_data = cls.cleanup_data(cls.substitutions, cls.classes)
+        pprint.pprint(cls.data)
 
 
     @staticmethod
-    def daten_von_webuntis(selected_date_str):
+    def get_data_from_WebUntis(selected_date_str):
         # Function to retrieve data from the WebUntis API
         
         try:
@@ -122,7 +124,7 @@ class DATA:
         return response.json()
 
     @staticmethod
-    def daten_bereinigen(Daten, Keys):
+    def cleanup_data(Daten, Keys):
         # Function to clean and organize the retrieved data
         
         Daten_kurz = {}
@@ -177,7 +179,12 @@ class GUI:
         
         self.master = master
         self.selected_class = StringVar(master)
-        self.selected_class.set(DATA.classes[0])
+        try:
+            
+            self.selected_class.set(DATA.classes[0])
+        except IndexError:
+            DATA.initialize(str(int(DATA.data['payload']['date']) + 1))
+            self.update_table_view()
 
         self.empty_label = Label(root, bg= 'white', height=1)
         self.empty_label.grid(row=1)
