@@ -191,6 +191,7 @@ class GUI:
                 'Info',
                 'Vertretungstext'
         ]
+        
         # Überschriften hinzufügen
         for i in range(1, 6):
             self.table.heading(i, text=self.table_headings[i - 1])
