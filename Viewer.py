@@ -8,16 +8,20 @@ class DATA:
     @classmethod
     def initialize(cls, date=None):
         try:
+            # If date is not provided, use the selected date from the GUI
             if date is None:
                 selected_date_str = GUI.selected_date.get()
                 parsed_date = datetime.strptime(selected_date_str, "%A, %d.%m.%Y")
                 date = parsed_date.strftime("%Y%m%d")
                 
         except Exception:
+            # If an exception occurs, use the current date
             date = datetime.now().strftime("%Y%m%d")
 
+        # Initialize data from WebUntis API
         cls.data = cls.daten_von_webuntis(date)
         
+        # Extract relevant information from the API response
         cls.substitutions = cls.data['payload']['rows']
         cls.classes = cls.data['payload']['affectedElements']['1']
         cls.clean_data = cls.daten_bereinigen(cls.substitutions, cls.classes)
@@ -25,6 +29,7 @@ class DATA:
 
     @staticmethod
     def daten_von_webuntis(selected_date_str):
+        # Function to retrieve data from the WebUntis API
         
         try:
             date = int(selected_date_str)
@@ -32,6 +37,7 @@ class DATA:
             parsed_date = datetime.strptime(selected_date_str, "%A, %d.%m.%Y")
             date = parsed_date.strftime("%Y%m%d")
         
+        # Headers, cookies, and parameters for the WebUntis API request
         cookies = {
             'traceId': 'c6d915932d178a01b45014d09ed504ce9c790385',
             'schoolname': '"_YmJzIGZyaWVzb3l0aGU="',
@@ -104,6 +110,7 @@ class DATA:
             'showUnheraldedExams': False,
         }
 
+        # Make a POST request to the WebUntis API
         response = requests.post(
             'https://kephiso.webuntis.com/WebUntis/monitor/substitution/data',
             params=params,
@@ -116,6 +123,7 @@ class DATA:
 
     @staticmethod
     def daten_bereinigen(Daten, Keys):
+        # Function to clean and organize the retrieved data
         
         Daten_kurz = {}
         
@@ -132,15 +140,16 @@ class DATA:
 
     @staticmethod
     def mögliche_tage():
+        # Function to get a list of possible dates for the GUI
        
-        # Funktion, um Samstag und Sonntag zu überspringen
+        # Function to skip Saturday and Sunday
         def naechster_werktag(datum):
             while True:
                 datum += timedelta(days=1)
-                if datum.weekday() < 5:  # 0-4 sind Montag bis Freitag
+                if datum.weekday() < 5:  # 0-4 are Monday to Friday
                     return datum
 
-        # Aktuelles Datum holen
+        # Get the current date
         heutiges_datum = datetime.now()
         naechste_tage = []
         
@@ -150,7 +159,7 @@ class DATA:
         else:
             tage = 14
             
-        # Liste für die nächsten 5 Werktage erstellen
+        # Create a list for the next 5 workdays
         
         for _ in range(tage):
             heutiges_datum = naechster_werktag(heutiges_datum)
@@ -162,6 +171,7 @@ class DATA:
 class GUI:
     
     def __init__(self, master):
+        # Initialize the GUI
         
         self.selected_date = StringVar()
         
@@ -189,7 +199,7 @@ class GUI:
         
         self.empty_label.grid(row=3)
 
-        # Tabelle erstellen
+        # Create a table
         self.table_view = ttk.Treeview(master, columns=(1, 2, 3, 4, 5), show="headings")
 
         self.column_headings = [
@@ -200,17 +210,18 @@ class GUI:
                 'Vertretungstext'
         ]
         
-        # Überschriften hinzufügen
+        # Add headings
         for i in range(1, 6):
             self.table_view.heading(i, text=self.column_headings[i - 1])
 
-        # Tabelle anzeigen
+        # Display the table
         self.table_view.grid(row=4, column=0, columnspan=2)
 
         # Initial update of the table
         self.update_table_view()
         
     def update_class_menu(self):
+        # Update the class menu options
         new_keys = DATA.classes
         menu = self.class_menu['menu']
         menu.delete(0, 'end')  # Remove old options
@@ -222,6 +233,7 @@ class GUI:
 
 
     def update_table_view(self, *args):
+        # Update the table view
         
         self.update_class_menu()
         self.table_view.delete(*self.table_view.get_children())
@@ -239,6 +251,7 @@ class GUI:
                 self.table_view.insert("", "end", values=row, tags=('oddrow',))
 
     def update_gui_data(self, *args):
+        # Update GUI data based on selected date and class
         selected_date = self.selected_date.get()
         DATA.initialize(selected_date)
         self.update_table_view()
