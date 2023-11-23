@@ -1,8 +1,4 @@
-from cx_Freeze import setup, Executable
+from distutils.core import setup
+import py2exe
 
-setup(
-    name="WebUntis-Viewer",
-    version="1.1",
-    description="See the Untis Timetable but better",
-    executables=[Executable("Viewer.py")]
-)
+setup(console=['Viewer.py'])

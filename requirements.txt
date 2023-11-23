@@ -1,3 +1,6 @@
 requests==2.26.0
 tabulate==0.9.0
 tk==0.1.0
+
+
+python G:\"Meine Ablage"\Python\WebUntis-Viewer\WebUntis-git\setup.py build

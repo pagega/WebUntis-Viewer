@@ -153,7 +153,7 @@ class DATA:
         naechste_tage = []
         
         if heutiges_datum.weekday() != 5 and heutiges_datum.weekday() != 6:
-            naechste_tage.append(f'{heutiges_datum.strftime('%A')}, {heutiges_datum.day}.{heutiges_datum.month}.{heutiges_datum.year}')
+            naechste_tage.append(f"{heutiges_datum.strftime('%A')}, {heutiges_datum.day}.{heutiges_datum.month}.{heutiges_datum.year}")
             tage = 13
         else:
             tage = 14
@@ -162,7 +162,7 @@ class DATA:
         
         for _ in range(tage):
             heutiges_datum = naechster_werktag(heutiges_datum)
-            naechste_tage.append(f'{heutiges_datum.strftime('%A')}, {heutiges_datum.day}.{heutiges_datum.month}.{heutiges_datum.year}')
+            naechste_tage.append(f"{heutiges_datum.strftime('%A')}, {heutiges_datum.day}.{heutiges_datum.month}.{heutiges_datum.year}")
              
         return naechste_tage
 
