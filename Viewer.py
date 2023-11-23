@@ -3,7 +3,6 @@ from tabulate import tabulate
 from tkinter import *
 from datetime import datetime, timedelta
 from tkinter import ttk
-import pprint
 
 class DATA:
     @classmethod
