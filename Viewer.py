@@ -37,7 +37,10 @@ class DATA:
             parsed_date = datetime.strptime(selected_date_str, "%A, %d.%m.%Y")
             date = parsed_date.strftime("%Y%m%d")
         
+        
         # Headers, cookies, and parameters for the WebUntis API request
+        
+        #Place cUrl command after:
         cookies = {
             'traceId': 'c6d915932d178a01b45014d09ed504ce9c790385',
             'schoolname': '"_YmJzIGZyaWVzb3l0aGU="',
@@ -118,6 +121,8 @@ class DATA:
             headers=headers,
             json=json_data,
         )
+        
+        #cUrl should end here. your script-block should look nearly the same as the one here.
         
         return response.json()
 
