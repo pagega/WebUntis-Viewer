@@ -3,6 +3,8 @@ from tabulate import tabulate
 from tkinter import *
 from datetime import datetime, timedelta
 from tkinter import ttk
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 
 class DATA:
     @classmethod
@@ -10,9 +12,23 @@ class DATA:
 
         # Initialize data from WebUntis API
         cls.days = DATA.mögliche_tage()
-        cls.data = cls.get_data_from_WebUntis(cls.days)
+        cls.data = DATA.request_data(cls.days)
         cls.clean_data = DATA.cleanup_data(cls.data, cls.days)
 
+    @staticmethod
+    def request_data(days):
+        retries = Retry(total=5, backoff_factor=1, status_forcelist=[500, 502, 503, 504])
+        session = requests.Session()
+        session.mount('http://', HTTPAdapter(max_retries=retries))
+        session.mount('https://', HTTPAdapter(max_retries=retries))
+
+        try:
+            data = DATA.get_data_from_WebUntis(days)
+            return data
+        except requests.exceptions.RequestException as e:
+            print(f"Error: {e}")
+            
+    @staticmethod
     def get_data_from_WebUntis(days):
         # Function to retrieve data from the WebUntis API
         
@@ -127,7 +143,7 @@ class DATA:
                     
                     for i in range(len(elements)):
                         elements[i] = elements[i].replace('<span class="substMonitorSubstElem">', "").replace('</span>', "").replace('<span class="cancelStyle">', '').replace('Raum&auml;nderung', 'Raumänderung')
- 
+
         return group_dict
             
     
@@ -167,7 +183,7 @@ class DATA:
         datum_obj = datetime.strptime(datum_str, '%Y%m%d')
         
         # Extrahiere Wochentag, Tag, Monat, Jahr als Liste
-        datum_liste = ['Datum: ', datum_obj.strftime('%A'), datum_obj.day, datum_obj.month, datum_obj.year]
+        datum_liste = ['date', 'Datum: ', datum_obj.strftime('%A'), datum_obj.day, datum_obj.month, datum_obj.year]
 
         return datum_liste
 
@@ -182,12 +198,14 @@ class GUI:
         for key in DATA.clean_data:
             self.keys.append(key)
         
+        self.page_number = 1
+        
         self.master = master
         
         self.selected_class = StringVar(master)
         self.selected_class.set('BG 13')
 
-        self.empty_label = Label(root, bg= 'white', height=1)
+        self.empty_label = Label(root, bg= '#1d3235', height=1)
         self.empty_label.grid(row=1)
 
         self.selected_class.trace_add('write', self.update_gui_data)
@@ -210,13 +228,27 @@ class GUI:
                 'Info',
                 'Vertretungstext'
         ]
-        
+        #maybe a scrollbar?
         # Add headings
         for i in range(1, 6):
             self.table_view.heading(i, text=self.column_headings[i - 1])
 
         # Display the table
         self.table_view.grid(row=4, column=0, columnspan=2)
+        
+        self.set_column_width(1, 100)  # Adjust the width of the first column
+        self.set_column_width(2, 150)   # Adjust the width of the second column
+        self.set_column_width(3, 150)  # Adjust the width of the third column
+        self.set_column_width(4, 350)  # Adjust the width of the fourth column
+        self.set_column_width(5, 350)  # Adjust the width of the fifth column
+        
+         # Add navigation buttons
+        Button(master, text="Previous Page", command=self.show_previous_page).grid(row=5, column=0, sticky="w")
+        Button(master, text="Next Page", command=self.show_next_page).grid(row=5, column=1, sticky="e")
+
+    def set_column_width(self, column, width):
+        self.table_view.column(column, width=width)
+        self.table_view.heading(column, text=self.column_headings[column - 1])
 
         # Initial update of the table
         self.update_table_view()
@@ -239,38 +271,71 @@ class GUI:
             else:
                 self.selected_class.set(current_value)
 
-
-
     def update_table_view(self, *args):
+        start_index = (self.page_number - 1) * 10
+        end_index = self.page_number * 10
+        row_counter = 0
+
         self.update_class_menu()
         self.table_view.delete(*self.table_view.get_children())
         selected_klasse = self.selected_class.get()
 
         # Define tags for alternating row colors
-        self.table_view.tag_configure('oddrow', background='#E6F7FF')
-        self.table_view.tag_configure('evenrow', background='#B3D9FF')  
-        self.table_view.tag_configure('date', background='#dfb3f2')
-        self.table_view.tag_configure('empty', background='#e4f0f6')
+        self.table_view.tag_configure('oddrow', background='#154251')
+        self.table_view.tag_configure('evenrow', background='#045f71')  
+        self.table_view.tag_configure('date', background='#384a50')
+        self.table_view.tag_configure('empty', background='#384a50')
         
-
-        for dates in DATA.clean_data[selected_klasse]:
-            self.table_view.insert("", "end", values=DATA.umwandeln_datum(dates), tags=('date'))
-            
-            for index, lists in enumerate(DATA.clean_data[selected_klasse][dates]):
                 
-                if index % 2 == 0:
-                    self.table_view.insert("", "end", values=lists, tags=('evenrow',))
+        table_data = []
+        
+        for dates in DATA.clean_data[selected_klasse]:
+            table_data.append(DATA.umwandeln_datum(dates))
+            for lists in DATA.clean_data[selected_klasse][dates]:
+                table_data.append(lists)
+            table_data.append(['empty'])
+        
+        for index, content in enumerate(table_data):
+            if row_counter >= start_index and row_counter <= end_index:
+                
+                if content[0] == 'empty':
+                    self.table_view.insert("", "end", values= [], tags=('empty'))
+                elif content[0] == 'date':
+                    self.table_view.insert("", "end", values=content[1:], tags=('date',))
+                    index = 0
                 else:
-                    self.table_view.insert("", "end", values=lists, tags=('oddrow',))
-                    
-            self.table_view.insert("", "end", values=[], tags= 'empty')
+                    if index % 2 == 0:
+                        self.table_view.insert("", "end", values=content[1:], tags=('evenrow',))
+                    else:
+                        self.table_view.insert("", "end", values=content[1:], tags=('oddrow',))
+                        
+                index += 1
+            row_counter += 1
+
+            
 
     def update_gui_data(self, *args):
 
         # Check if clean_data is empty, and if so, select data from the next possible date
         if not DATA.clean_data:
             DATA.initialize()
+        
         self.update_table_view()
+        
+    def show_previous_page(self):
+        if self.page_number > 1:
+            self.page_number -= 1
+            self.update_table_view()
+
+    def show_next_page(self):
+        # You should replace the condition below with your logic to check if there are more pages
+        try:
+            if True:
+                self.page_number += 1
+                self.index = 0
+                self.update_table_view()
+        except UnboundLocalError:
+            pass
 
         
 # Initialize the data after the GUI is set up
@@ -278,7 +343,7 @@ DATA.initialize()
 
 # Create the main Tkinter window
 root = Tk()
-root.configure(bg='white')
+root.configure(bg='#1d3235')
 
 # Create an instance of the GUI class
 gui = GUI(root)
