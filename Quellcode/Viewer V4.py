@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from tkinter import ttk
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
+import customtkinter as ctk
 
 class DATA:
     @classmethod
@@ -39,10 +40,13 @@ class DATA:
         for dates in days:
             
             datum = f"{dates[6:8]}.{dates[4:6]}.{dates[:4]}"  # dates in the format yyyymmdd and should be dd.mm.yyyy
-            first_gui.status_label.config(text=f"Lade Daten für den {datum}")
-            root.update()
+            try:
+                first_gui.status_label.config(text=f"Lade Daten für den {datum}")
+                root.update()
+                
+            except Exception:
+                pass
         
-            first_gui.status_label.config(text="lol")
             #Place cUrl command after:
             cookies = {
                 'traceId': 'c6d915932d178a01b45014d09ed504ce9c790385',
@@ -127,8 +131,11 @@ class DATA:
             
             data[dates] = response.json()
             
-            first_gui.pb['value'] += 100/anzahl_tage
-            root.update()
+            try:
+                first_gui.pb['value'] += 100/anzahl_tage
+                root.update()
+            except Exception:
+                pass
             
         #cUrl should end here. your script-block should look nearly the same as the one here
         return data
@@ -210,16 +217,8 @@ class GUI:
     
     def __init__(self, master):
         
-        self.date_color = '#0F0F0F'
-        self.odd_color = '#1E1E1E'
-        self.even_color = '#292929'
-        self.scrollbar_color = ''
-        self.heading_color = '#FF7832'
-        self.class_menu_color = '#FF7832'
-        
-        self.scrollbar_table = ttk.Scrollbar(master, orient=VERTICAL, style= 'My.Vertical.TScrollbar')
+        self.scrollbar_table = ctk.CTkScrollbar(master, button_color= bg_colors['Scrollbar_slider'], button_hover_color= bg_colors['theme'])
         master.style = ttk.Style()
-        master.style.configure('My.Vertical.TScrollbar', background='black', troughcolor='black', activebackground='black')
         
         # Initialize the GUI
         self.keys = []
@@ -235,25 +234,30 @@ class GUI:
         self.selected_class.trace_add('write', self.update_gui_data)
 
         self.class_menu = OptionMenu(master, self.selected_class, *self.keys)
-        self.class_menu.configure(relief= 'raised', bg= self.class_menu_color, highlightthickness= 0.5, highlightbackground= 'black', foreground = 'white')
-        self.class_menu.grid(row=2, column=0, columnspan=3, padx= 500, sticky= 'we')
+        self.class_menu.configure(relief= 'raised', bg= bg_colors['theme'], highlightthickness= 0.5)
+        self.class_menu.grid(row=2, column=0, columnspan=1, padx= 5, pady= 10, sticky= 'we')
         
-        self.empty_label = Label(root, bg= '#1E1E1E', height=1)
+        self.day_entry = Entry(master, fg= 'grey')
+        self.day_entry.insert(0, 'Neue Anzahl Tage...')
+        self.day_entry.bind("<FocusIn>", self.on_entry_click)
+        self.day_entry.bind("<FocusOut>", self.on_entry_leave)
+        self.day_entry.grid(row=2, column=1, padx=5, pady=5, sticky='we')
+        
+        self.day_button = Button(master, text="Daten neu laden", bg= bg_colors['theme'], foreground= fg_colors[bg_colors['theme']])
+        self.day_button.config(command= self.reload)
+        self.day_button.grid(row=2, column=2, padx=5, pady=5, sticky='we')
+        
+        '''self.empty_label = Label(root, bg= '#1E1E1E', height=1)
         self.empty_label.grid(row=1, column=0, sticky= 'we')
-        self.empty_label.grid(row=3, column=0, sticky= 'we')
+        self.empty_label.grid(row=3, column=0, sticky= 'we')'''
 
         # Create a table
         self.table_view = ttk.Treeview(master, columns=(1, 2, 3, 4, 5), show='')
         self.table_view.config(yscrollcommand=self.scrollbar_table.set)
-        self.table_view.grid(row=4, column=0, columnspan=1)
+        self.table_view.grid(row=4, column=0, columnspan=3)
         
-        self.scrollbar_table.config(command=self.table_view.yview)
-        self.scrollbar_table.grid(row=4, column=1, rowspan=1, sticky=NS)
-        
-        '''scrollbar_table = Scrollbar(master, orient=VERTICAL,)
-        scrollbar_table.config(command=self.table_view.yview, bg = 'black', activebackground= 'black')
-        scrollbar_table.grid(row=4, column=1, rowspan= 1, sticky= NS)'''
-
+        self.scrollbar_table.configure(command=self.table_view.yview)
+        self.scrollbar_table.grid(row=4, column=4, rowspan=1, sticky=NS)
 
         self.column_headings = [
                 'Stunde',
@@ -269,7 +273,14 @@ class GUI:
         self.set_column_width(4, 350)  # Adjust the width of the fourth column
         self.set_column_width(5, 350)  # Adjust the width of the fifth column
         
+    def on_entry_click(self, event):
+            self.day_entry.delete(0, END)
+            self.day_entry.config(fg='black')  # Change text color to black
 
+    def on_entry_leave(self, event):
+            self.day_entry.insert(0, "Neue Anzahl Tage...")
+            self.day_entry.config(fg='grey')  # Change text color to grey
+            
     def set_column_width(self, column, width):
         self.table_view.column(column, width=width)
         
@@ -294,6 +305,28 @@ class GUI:
             else:
                 self.selected_class.set(current_value)
 
+    def reload(self):
+        try:
+            tage = int(self.day_entry.get())
+            root.focus_force()
+            self.day_entry.delete(0, END)
+            self.day_entry.insert(0, "Neue Anzahl Tage...")
+            self.day_entry.config(fg= 'grey')
+            self.day_entry.config(state= 'disabled')
+            self.day_button.config(text= 'Bitte warten', state= 'disabled')
+            self.class_menu.config(state= 'disabled')
+            root.update()
+            
+            DATA.initialize(tage)
+            self.update_table_view()
+            self.day_entry.config(state= 'normal')
+            self.day_button.config(text= 'Daten neu laden', state= 'normal')
+            self.class_menu.config(state= 'normal')
+            root.update()
+            
+        except:
+            pass
+    
     def update_table_view(self, *args):
 
         self.update_class_menu()
@@ -301,16 +334,15 @@ class GUI:
         selected_klasse = self.selected_class.get()
 
         # Define tags for alternating row colors
-        self.table_view.tag_configure('oddrow', background= self.odd_color, foreground= 'white')
-        self.table_view.tag_configure('evenrow', background= self.even_color, foreground= 'white')  
-        self.table_view.tag_configure('date', background= self.date_color, foreground= 'white')
-        self.table_view.tag_configure('empty', background='#919191')
+        self.table_view.tag_configure('oddrow', background= bg_colors['table_odd'], foreground= fg_colors[bg_colors['table_odd']])
+        self.table_view.tag_configure('evenrow', background= bg_colors['table_even'], foreground= fg_colors[bg_colors['table_even']])  
+        self.table_view.tag_configure('date', background= bg_colors['table_date'], foreground= fg_colors[bg_colors['table_date']])
         
                 
         table_data = []
         
         self.table_view.insert("", "end", values=self.column_headings, tags=('header',))
-        self.table_view.tag_configure('header', background=self.heading_color, foreground='white', font=('Helvetica', 10, 'bold'))
+        self.table_view.tag_configure('header', background=bg_colors['theme'], foreground='black', font=('Helvetica', 10, 'bold'))
         
         for dates in DATA.clean_data[selected_klasse]:
             table_data.append(DATA.umwandeln_datum(dates))
@@ -349,14 +381,14 @@ class Startup:
         
         s = ttk.Style()
         s.theme_use('clam')
-        s.configure("red.Horizontal.TProgressbar", background='#FF7832', troughcolor='black')
+        s.configure("red.Horizontal.TProgressbar", background=bg_colors['theme'], troughcolor='black')
         
         self.master = master
-        self.welcome_label = Label(master, text= "Willkommen, gebe hier die Anzahl der Tage ein die geladen werden sollen :)", bg='#1E1E1E', foreground= 'white')
-        self.entry = Entry(master)
-        self.confirm_button = Button(master,text= "Bestätige hier", command=self.confirm_clicked, bg='#FF7832', foreground= 'white')
+        self.welcome_label = Label(master, text= "Willkommen, gebe hier die Anzahl der Tage ein die geladen werden sollen :)", bg=bg_colors['bg'], foreground= fg_colors[bg_colors['bg']])
+        self.day_entry = Entry(master)
+        self.confirm_button = Button(master,text= "Bestätige hier", command=self.confirm_clicked, bg=bg_colors['theme'], foreground= fg_colors[bg_colors['theme']])
         
-        self.status_label = Label(master, text="Lade Daten, bitte Warten...", bg='#1E1E1E', foreground= 'white', justify= 'center')
+        self.status_label = Label(master, text="Lade Daten, bitte Warten...", bg=bg_colors['bg'], foreground= fg_colors[bg_colors['bg']], justify= 'center')
         self.pb = ttk.Progressbar(
             root,
             orient='horizontal',
@@ -365,14 +397,14 @@ class Startup:
             style= 'red.Horizontal.TProgressbar'
         ) 
         
-        self.welcome_label.grid(row=0, column=0, padx= 5, pady= 5)
-        self.entry.grid(row=1, column=0, sticky= 'we', padx= 5, pady= 5)
-        self.confirm_button.grid(row=2, column=0, sticky= 'we', padx= 5, pady= 5)
+        self.welcome_label.grid(row=0, column=0, padx= 10, pady= 5)
+        self.day_entry.grid(row=1, column=0, sticky= 'we', padx= 10, pady= 5)
+        self.confirm_button.grid(row=2, column=0, sticky= 'we', padx= 10, pady= 5)
         
     def confirm_clicked(self):
-        tage = int(self.entry.get())
+        tage = int(self.day_entry.get())
         self.welcome_label.destroy()
-        self.entry.destroy()
+        self.day_entry.destroy()
         self.confirm_button.destroy()
         self.status_label.pack()
         self.pb.pack()
@@ -382,20 +414,37 @@ class Startup:
 
     def initialize_data(self, tage):
         DATA.initialize(tage)
-        root.destroy()
+        self.day_entry.destroy()
+        self.status_label.destroy()
+        self.pb.destroy()
+        gui = GUI(root)
+        root.geometry('')
         
     def update_data(self, data):
         self.status_label.config(self.master, text=data)
 
 
+
+
+bg_colors = {
+    'table_date': '#0F0F0F',
+    'table_odd': '#1E1E1E',
+    'table_even': '#292929',
+    'theme': '#00ffff',
+    'Scrollbar_slider': '#4d4d4d',
+    'bg': '#1E1E1E'
+    } 
+
+fg_colors = {
+    '#0F0F0F': 'white',
+    '#1E1E1E': 'white',
+    '#292929': 'white',
+    '#00ffff': 'black',
+    '4d4d4d': 'white'
+    }
+        
 root = Tk()
-root.configure(bg='#1E1E1E')
+root.configure(bg=bg_colors['bg'])
 root.geometry("410x100")
 first_gui = Startup(root)
-root.mainloop()
-
-
-root = Tk()
-root.configure(bg='#1E1E1E')
-gui = GUI(root)
 root.mainloop()
