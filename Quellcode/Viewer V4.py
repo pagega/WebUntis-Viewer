@@ -286,6 +286,7 @@ class GUI:
             bg_colors['table_odd'] = '#bfbfbf'
             bg_colors['table_even'] = '#f2f2f2'
             bg_colors['bg'] = '#bfbfbf'
+            bg_colors['theme'] = '#ffffff'
 
         else:
             self.mode_button.config(text='White')
@@ -294,20 +295,23 @@ class GUI:
             bg_colors['table_odd'] = '#1E1E1E'
             bg_colors['table_even'] = '#292929'
             bg_colors['bg'] = '#1E1E1E'
+            bg_colors['theme'] = '#000000'
         
-        root.configure(bg=bg_colors['bg'])
-        self.update_table_view()
+        self.update_widgets()
         
         
-       
-    def change_theme(self, theme):
-        bg_colors['theme'] = theme
+    def update_widgets(self):
         self.day_button.config(bg= bg_colors['theme'], foreground= fg_colors[bg_colors['theme']])
         self.class_menu.config(bg= bg_colors['theme'], foreground= fg_colors[bg_colors['theme']])
         self.scrollbar_table.configure(button_color= bg_colors['Scrollbar_slider'], button_hover_color= bg_colors['theme'])
         self.mode_button.config(bg= bg_colors['theme'], foreground= fg_colors[bg_colors['theme']])
+        root.configure(bg=bg_colors['bg'])
         root.update()
         self.update_table_view()
+        
+    def change_theme(self, theme):
+        bg_colors['theme'] = theme
+        self.update_widgets()
       
     def on_entry_click(self, event):
             self.day_entry.delete(0, END)
@@ -415,7 +419,7 @@ class Startup:
         
         s = ttk.Style()
         s.theme_use('clam')
-        s.configure("red.Horizontal.TProgressbar", background=bg_colors['theme'], troughcolor=bg_colors['bg'])
+        s.configure("red.Horizontal.TProgressbar", background= '#ffffff', troughcolor=bg_colors['bg'])
         
         self.status_label = Label(master, text="Lade Daten, bitte Warten...", bg=bg_colors['bg'], foreground= fg_colors[bg_colors['bg']], justify= 'center')
         self.pb = ttk.Progressbar(
@@ -445,7 +449,7 @@ bg_colors = {
     'table_date': '#0F0F0F',
     'table_odd': '#1E1E1E',
     'table_even': '#292929',
-    'theme': '',
+    'theme': '#000000',
     'Scrollbar_slider': '#4d4d4d',
     'bg': '#1E1E1E',
     'themes': ['#00ffff', '#0000ff', '#000000', '#ff0000', '#ffff00', '#00ff00', '#ffffff']
@@ -467,11 +471,6 @@ fg_colors = {
     '#bfbfbf': 'black',
     '#f2f2f2': 'black'
     }
-colors = []
-for color in fg_colors.keys():
-    colors.append(color)
-    
-bg_colors['theme'] = random.choice(colors)
         
 root = Tk()
 root.configure(bg=bg_colors['bg'])
