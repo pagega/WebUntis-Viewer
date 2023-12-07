@@ -7,6 +7,7 @@ from tkinter import ttk
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import customtkinter as ctk
+import random
 
 class DATA:
     @classmethod
@@ -220,7 +221,6 @@ class GUI:
         self.scrollbar_table = ctk.CTkScrollbar(master, button_color= bg_colors['Scrollbar_slider'], button_hover_color= bg_colors['theme'])
         master.style = ttk.Style()
         
-        # Initialize the GUI
         self.keys = []
         
         for key in DATA.clean_data:
@@ -234,7 +234,7 @@ class GUI:
         self.selected_class.trace_add('write', self.update_gui_data)
 
         self.class_menu = OptionMenu(master, self.selected_class, *self.keys)
-        self.class_menu.configure(relief= 'raised', bg= bg_colors['theme'], highlightthickness= 0.5)
+        self.class_menu.configure(relief= 'raised', bg= bg_colors['theme'],foreground= fg_colors[bg_colors['theme']], highlightthickness= 0.5)
         self.class_menu.grid(row=2, column=0, columnspan=1, padx= 5, pady= 10, sticky= 'we')
         
         self.day_entry = Entry(master, fg= 'grey')
@@ -247,17 +247,22 @@ class GUI:
         self.day_button.config(command= self.reload)
         self.day_button.grid(row=2, column=2, padx=5, pady=5, sticky='we')
         
-        '''self.empty_label = Label(root, bg= '#1E1E1E', height=1)
-        self.empty_label.grid(row=1, column=0, sticky= 'we')
-        self.empty_label.grid(row=3, column=0, sticky= 'we')'''
+        self.mode_button = Button(master, text='White', bg= bg_colors['theme'], foreground= fg_colors[bg_colors['theme']])
+        self.mode_button.config(command= self.change_mode)
+        self.mode_button.grid(row=2, column=3, columnspan=3, padx=5, pady=5, sticky='we')
 
         # Create a table
         self.table_view = ttk.Treeview(master, columns=(1, 2, 3, 4, 5), show='')
         self.table_view.config(yscrollcommand=self.scrollbar_table.set)
-        self.table_view.grid(row=4, column=0, columnspan=3)
+        self.table_view.grid(row=4, column=0, columnspan=3, rowspan= 8)
         
         self.scrollbar_table.configure(command=self.table_view.yview)
-        self.scrollbar_table.grid(row=4, column=4, rowspan=1, sticky=NS)
+        self.scrollbar_table.grid(row=4, column=4, rowspan=8, sticky=NS)
+        
+        for index, color in enumerate(bg_colors['themes']):
+            self.button = Button(bg=color)
+            self.button.config(command=lambda i=color: self.change_theme(i))
+            self.button.grid(column=5, row=5+index)
 
         self.column_headings = [
                 'Stunde',
@@ -272,7 +277,38 @@ class GUI:
         self.set_column_width(3, 150)  # Adjust the width of the third column
         self.set_column_width(4, 350)  # Adjust the width of the fourth column
         self.set_column_width(5, 350)  # Adjust the width of the fifth column
+    
+    def change_mode(self):
+        if self.mode_button.config('text')[-1]== 'White':
+            self.mode_button.config(text='Dark ')
+            #White mode
+            bg_colors['table_date'] = '#8c8c8c'
+            bg_colors['table_odd'] = '#bfbfbf'
+            bg_colors['table_even'] = '#f2f2f2'
+            bg_colors['bg'] = '#bfbfbf'
+
+        else:
+            self.mode_button.config(text='White')
+            #Darkmode
+            bg_colors['table_date'] = '#0F0F0F'
+            bg_colors['table_odd'] = '#1E1E1E'
+            bg_colors['table_even'] = '#292929'
+            bg_colors['bg'] = '#1E1E1E'
         
+        root.configure(bg=bg_colors['bg'])
+        self.update_table_view()
+        
+        
+       
+    def change_theme(self, theme):
+        bg_colors['theme'] = theme
+        self.day_button.config(bg= bg_colors['theme'], foreground= fg_colors[bg_colors['theme']])
+        self.class_menu.config(bg= bg_colors['theme'], foreground= fg_colors[bg_colors['theme']])
+        self.scrollbar_table.configure(button_color= bg_colors['Scrollbar_slider'], button_hover_color= bg_colors['theme'])
+        self.mode_button.config(bg= bg_colors['theme'], foreground= fg_colors[bg_colors['theme']])
+        root.update()
+        self.update_table_view()
+      
     def on_entry_click(self, event):
             self.day_entry.delete(0, END)
             self.day_entry.config(fg='black')  # Change text color to black
@@ -283,8 +319,6 @@ class GUI:
             
     def set_column_width(self, column, width):
         self.table_view.column(column, width=width)
-        
-        # Initial update of the table
         self.update_table_view()
         
     def update_class_menu(self):
@@ -342,7 +376,7 @@ class GUI:
         table_data = []
         
         self.table_view.insert("", "end", values=self.column_headings, tags=('header',))
-        self.table_view.tag_configure('header', background=bg_colors['theme'], foreground='black', font=('Helvetica', 10, 'bold'))
+        self.table_view.tag_configure('header', background=bg_colors['theme'], foreground= fg_colors[bg_colors['theme']], font=('Helvetica', 10, 'bold'))
         
         for dates in DATA.clean_data[selected_klasse]:
             table_data.append(DATA.umwandeln_datum(dates))
@@ -381,12 +415,7 @@ class Startup:
         
         s = ttk.Style()
         s.theme_use('clam')
-        s.configure("red.Horizontal.TProgressbar", background=bg_colors['theme'], troughcolor='black')
-        
-        self.master = master
-        self.welcome_label = Label(master, text= "Willkommen, gebe hier die Anzahl der Tage ein die geladen werden sollen :)", bg=bg_colors['bg'], foreground= fg_colors[bg_colors['bg']])
-        self.day_entry = Entry(master)
-        self.confirm_button = Button(master,text= "Bestätige hier", command=self.confirm_clicked, bg=bg_colors['theme'], foreground= fg_colors[bg_colors['theme']])
+        s.configure("red.Horizontal.TProgressbar", background=bg_colors['theme'], troughcolor=bg_colors['bg'])
         
         self.status_label = Label(master, text="Lade Daten, bitte Warten...", bg=bg_colors['bg'], foreground= fg_colors[bg_colors['bg']], justify= 'center')
         self.pb = ttk.Progressbar(
@@ -397,42 +426,29 @@ class Startup:
             style= 'red.Horizontal.TProgressbar'
         ) 
         
-        self.welcome_label.grid(row=0, column=0, padx= 10, pady= 5)
-        self.day_entry.grid(row=1, column=0, sticky= 'we', padx= 10, pady= 5)
-        self.confirm_button.grid(row=2, column=0, sticky= 'we', padx= 10, pady= 5)
-        
-    def confirm_clicked(self):
-        tage = int(self.day_entry.get())
-        self.welcome_label.destroy()
-        self.day_entry.destroy()
-        self.confirm_button.destroy()
+        tage = 3
         self.status_label.pack()
         self.pb.pack()
 
         # Schedule the initialize method after a short delay
         root.after(100, self.initialize_data, tage)
-
+        
     def initialize_data(self, tage):
         DATA.initialize(tage)
-        self.day_entry.destroy()
         self.status_label.destroy()
         self.pb.destroy()
+        root.after(200)
         gui = GUI(root)
         root.geometry('')
-        
-    def update_data(self, data):
-        self.status_label.config(self.master, text=data)
-
-
-
 
 bg_colors = {
     'table_date': '#0F0F0F',
     'table_odd': '#1E1E1E',
     'table_even': '#292929',
-    'theme': '#00ffff',
+    'theme': '',
     'Scrollbar_slider': '#4d4d4d',
-    'bg': '#1E1E1E'
+    'bg': '#1E1E1E',
+    'themes': ['#00ffff', '#0000ff', '#000000', '#ff0000', '#ffff00', '#00ff00', '#ffffff']
     } 
 
 fg_colors = {
@@ -440,8 +456,22 @@ fg_colors = {
     '#1E1E1E': 'white',
     '#292929': 'white',
     '#00ffff': 'black',
-    '4d4d4d': 'white'
+    '4d4d4d': 'white',
+    '#0000ff':'black',
+    '#000000': 'white',
+    '#ffff00': 'black',
+    '#ffffff': 'black',
+    '#00ff00': 'black',
+    '#ff0000': 'black',
+    '#8c8c8c': 'black',
+    '#bfbfbf': 'black',
+    '#f2f2f2': 'black'
     }
+colors = []
+for color in fg_colors.keys():
+    colors.append(color)
+    
+bg_colors['theme'] = random.choice(colors)
         
 root = Tk()
 root.configure(bg=bg_colors['bg'])
